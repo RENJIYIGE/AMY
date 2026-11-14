@@ -1,0 +1,134 @@
+> 如果解集特别大的话，一般是贪心。
+> 研究最优解的性质
+- 最优性证明（如调整法（调整看是否更优））
+- 解集刻画
+- 凸性
+# 反悔贪心
+许过网络流都是反悔贪心（思想），如增广路，
+### P1792
+反悔贪心
+
+> 反悔后的差是好刻画的就可以用反悔贪心。
+
+### 解决最优化问题
+- 贪心
+- DP
+特定问题模型
+- 网络流 ， 差分约束 ， 模拟费用流
+- 线性规划
+- 凸规划
+
+## CF865D Buy Low Sell High
+
+反悔贪心的经典题目。
+
+### 题目
+
+你可以完美地预测某只股票接下来 $N$ 天的价格，但你每天只能买卖一股，这表明你每天要么什么都不干，要么买入一股，要么卖出一股。起初你没有股票。你希望在第 $N$ 天结束时不持有股票，并最大化盈利。
+
+$N \le 10^5$
+
+### 思路
+
+直接贪心显然是错误的。
+
+我们考虑如何刻画这个反悔后的差，也就是反悔的状态。
+
+有两种反悔：
+
+1. 反悔买的时候
+2. 反悔卖的时候
+
+反悔买的很简单（如果当前没有卖掉的话），但是怎么知道买多少次呢？
+
+我们可以假定全部都买了，然后加入反悔的操作，但是这个显然不好刻画。
+
+那咋办呢？
+
+# 调整法
+### CF632C
+#### problem
+给定 $n$ 个字符串，第 $i$ 个字符串为 $a_i$。求出一种依次连接这 $n$ 个字符串的顺序，使连接而成的字符串满足字典序最小。
+#### sol
+假设当前解为
+$$
+S_1 , S_2 , S_3 , ... S_n
+$$
+如果
+$$
+S_1S_2\le S_2S_1
+$$
+
+### UOJ418【集训队作业2018】三角形
+???怎么还要用线段树合并，待会再写
+### ABC147E - Examination
+
+无解很好判断，排序后看有没有数满足 $a_i<b_i$，如果有就是无解。
+
+考虑把原序列所有的 $a_i<b_i$ 的数提出来，这些数是必须要交换位置的。
+1. 所以可以先把 $a$ 和 $b$ 各自排个序，从小到大依此取数。如果这一对 $a_i$ 和 $b_i$ 已经满足 $a_i\ge b_i$ 了就直接跳，
+2. 否则我们就要从合法的数对里引进一对数来使这一对 $a_i$ 和 $b_i$ 满足条件。
+我们引进的数对必须要满足
+-  $b_j\le a_i (a_i要满足新的限制)$
+-  $a_j$ 最大
+3. 然后交换 $a_i$ 和 $a_j$ 即可。
+
+实现时可以使用两个小根堆维护 $a_i$ 和 $b_i$，以及一个大根堆维护满足 $b_j\le a_i$ 的 $a_j$。
+
+```cpp
+#include <algorithm>
+#include <iostream>
+#include <queue>
+#include <vector>
+
+using namespace std;
+using Pii = pair<int, int>;
+using Qs = priority_queue<int, vector<int>, greater<int>>;
+using Ql = priority_queue<int>;
+
+const int kN = 3e5 + 1;
+
+int n, a[kN], b[kN], _a[kN], _b[kN], ans;
+Qs qa, qb;
+Ql qu;
+vector<Pii> e;
+
+int main() {
+  ios_base::sync_with_stdio(0), cin.tie(0), cout.tie(0);
+  cin >> n;
+  for (int i = 1; i <= n; ++i) {
+    cin >> a[i] >> b[i];
+    _a[i] = a[i], _b[i] = b[i];
+  }
+  sort(_a + 1, _a + n + 1);
+  sort(_b + 1, _b + n + 1);
+  for (int i = 1; i <= n; ++i) {
+    if (_a[i] < _b[i]) {
+      cout << "-1";
+      return 0;
+    }
+  }
+  for (int i = 1; i <= n; ++i) {
+    if (a[i] < b[i]) {  // 提出所有不合法的数对
+      qa.push(a[i]), qb.push(b[i]);
+    } else {  // 合法的提到候选队列
+      e.emplace_back(a[i], b[i]);
+    }
+  }
+  sort(e.begin(), e.end(), [](Pii i, Pii j) { return i.second < j.second; });
+  for (int i = 0; !qa.empty();) {
+    ++ans;
+    int x = qa.top(), y = qb.top();
+    if (x >= y) {          // 如果已经合法了
+      qa.pop(), qb.pop();  // 直接跳过即可
+      continue;
+    }
+    for (; i < e.size() && e[i].second <= x; ++i) {  // 找出所有满足 a[j]<=a[i] 的数对丢进可选队列里
+      qu.push(e[i].first);
+    }
+    qa.pop(), qa.push(qu.top()), qu.pop();  // 选一个最大的可选 a 替代当前的 a
+  }
+  cout << n - ans;
+  return 0;
+}
+```
